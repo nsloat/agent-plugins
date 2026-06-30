@@ -10,6 +10,11 @@
       "name": "hello-world",
       "source": "./plugins/hello-world",
       "description": "Example plugin demonstrating marketplace registration"
+    },
+    {
+      "name": "project",
+      "source": "./plugins/project",
+      "description": "Manage multi-repo \"projects\" — one git worktree per repo, sharing a branch, from setup through finish"
     }
   ]
 }
