@@ -1,0 +1,6 @@
+{
+  "name": "project",
+  "displayName": "Project",
+  "description": "Manage multi-repo \"projects\" — a named effort with one git worktree per repo, all sharing a branch.",
+  "version": "1.0.0"
+}
