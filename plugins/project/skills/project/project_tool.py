@@ -95,3 +95,13 @@ def discover_repos(repos_root) -> list:
         if child.is_dir() and is_git_repo(child):
             repos.append({"name": child.name, "path": str(child), "base": default_branch(child)})
     return repos
+
+
+def suggest_repos(text, signal_rules) -> list:
+    text_l = (text or "").lower()
+    hits = []
+    for rule in signal_rules or []:
+        if any(kw.lower() in text_l for kw in rule.get("match", [])):
+            if rule["repo"] not in hits:
+                hits.append(rule["repo"])
+    return hits

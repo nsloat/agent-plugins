@@ -104,3 +104,28 @@ class TestDiscovery(unittest.TestCase):
             self.assertEqual(repos[0]["base"], "master")
             self.assertEqual(repos[1]["base"], "main")
             self.assertTrue(repos[0]["path"].endswith("/alpha"))
+
+
+class TestSuggest(unittest.TestCase):
+    RULES = [
+        {"match": ["terraform", "infra", "kubernetes"], "repo": "ops-infra"},
+        {"match": ["checkout", "frontend", "ui"], "repo": "web-frontend"},
+    ]
+
+    def test_suggests_on_keyword(self):
+        text = "Update the terraform config for the API gateway"
+        self.assertEqual(pt.suggest_repos(text, self.RULES), ["ops-infra"])
+
+    def test_case_insensitive_and_dedup(self):
+        text = "Terraform change plus another terraform tweak"
+        self.assertEqual(pt.suggest_repos(text, self.RULES), ["ops-infra"])
+
+    def test_multiple_repos_in_rule_order(self):
+        text = "New checkout UI needs a new infra kubernetes config"
+        self.assertEqual(pt.suggest_repos(text, self.RULES), ["ops-infra", "web-frontend"])
+
+    def test_no_match_empty(self):
+        self.assertEqual(pt.suggest_repos("unrelated text", self.RULES), [])
+
+    def test_none_text_safe(self):
+        self.assertEqual(pt.suggest_repos(None, self.RULES), [])
