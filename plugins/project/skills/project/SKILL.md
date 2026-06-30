@@ -13,13 +13,13 @@ deterministic mechanics live in the bundled `project_tool.py`; this skill
 orchestrates git and `gh`, calling the helper for config, manifest, discovery,
 AGENTS.md injection, and finish-safety.
 
-Locate `project_tool.py` in the same directory as this SKILL.md. Set:
+`project_tool.py` is bundled alongside this SKILL.md in the plugin. Resolve it
+via the plugin root:
 
 ```bash
-HELPER="<absolute path to project_tool.py>"
+HELPER="${CLAUDE_PLUGIN_ROOT}/skills/project/project_tool.py"
 ```
 
-To resolve it at runtime: `find ~/.claude -name project_tool.py 2>/dev/null | head -1`.
 Invoke as `python3 "$HELPER" <subcommand> ...`.
 
 ## Config
