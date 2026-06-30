@@ -213,3 +213,70 @@ class TestFinishSafety(unittest.TestCase):
     def test_force_overrides_everything(self):
         self.assertTrue(pt.repo_safe_to_remove(
             {"dirty": True, "unpushed": True, "pr_merged": None, "force": True}))
+
+
+import subprocess as sp
+
+TOOL = str(Path(__file__).resolve().parent.parent / "project_tool.py")
+
+
+class TestCli(unittest.TestCase):
+    def test_discover_repos_cli_json(self):
+        with tempfile.TemporaryDirectory() as d:
+            _init_repo(Path(d) / "alpha", "master")
+            r = sp.run(
+                ["python3", TOOL, "discover-repos", "--root", d],
+                capture_output=True, text=True, check=True,
+            )
+            data = json.loads(r.stdout)
+            self.assertEqual(data[0]["name"], "alpha")
+            self.assertEqual(data[0]["base"], "master")
+
+    def test_resolve_branch_cli(self):
+        r = sp.run(
+            ["python3", TOOL, "resolve-branch", "--namespace", "alice-co",
+             "--category", "feature", "--name", "cool feature"],
+            capture_output=True, text=True, check=True,
+        )
+        self.assertEqual(r.stdout.strip(), "alice-co/feature/cool-feature")
+
+    def test_render_agents_block_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = {
+                "repos_root": "~/code", "projects_root": "~/projects",
+                "branch_namespace": "alice-co", "agents_md_path": "~/AGENTS.md",
+                "repos": [], "signal_rules": [],
+            }
+            cfgp = Path(d) / "config.json"
+            pt.save_config(cfg, cfgp)
+            r = sp.run(
+                ["python3", TOOL, "render-agents-block", "--config", str(cfgp)],
+                capture_output=True, text=True, check=True,
+            )
+            self.assertIn(pt.BLOCK_START, r.stdout)
+            self.assertIn("alice-co/<category>/<name>", r.stdout)
+
+    def test_validate_config_ok(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfg = {
+                "repos_root": "~/code", "projects_root": "~/projects",
+                "branch_namespace": "alice-co", "agents_md_path": "~/AGENTS.md",
+                "repos": [], "signal_rules": [],
+            }
+            cfgp = Path(d) / "config.json"
+            pt.save_config(cfg, cfgp)
+            r = sp.run(
+                ["python3", TOOL, "validate-config", "--config", str(cfgp)],
+                capture_output=True, text=True, check=True,
+            )
+            self.assertIn("OK", r.stdout)
+
+    def test_validate_config_fails_on_bad(self):
+        with tempfile.TemporaryDirectory() as d:
+            cfgp = Path(d) / "config.json"
+            pt.save_config({"branch_namespace": ""}, cfgp)
+            r = sp.run(
+                ["python3", TOOL, "validate-config", "--config", str(cfgp)],
+                capture_output=True, text=True,
+            )
+            self.assertNotEqual(r.returncode, 0)

@@ -181,3 +181,71 @@ def repo_safe_to_remove(status: dict) -> bool:
     if status.get("unpushed"):
         return False
     return status.get("pr_merged") is True
+
+
+def _cmd_discover_repos(args):
+    print(json.dumps(discover_repos(args.root), indent=2))
+
+
+def _cmd_resolve_branch(args):
+    print(resolve_branch(args.namespace, args.category, args.name))
+
+
+def _cmd_render_agents_block(args):
+    cfg = load_config(args.config)
+    print(render_agents_block(cfg))
+
+
+def _cmd_inject_agents_md(args):
+    cfg = load_config(args.config)
+    target = Path(args.agents_md or cfg["agents_md_path"]).expanduser()
+    content = target.read_text() if target.exists() else ""
+    target.write_text(inject_block(content, render_agents_block(cfg)))
+    print(f"injected projects-workflow block into {target}")
+
+
+def _cmd_validate_config(args):
+    errs = validate_config(load_config(args.config))
+    if errs:
+        print("\n".join(errs))
+        raise SystemExit(1)
+    print("config OK")
+
+
+def build_parser():
+    p = argparse.ArgumentParser(prog="project_tool")
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    s = sub.add_parser("discover-repos")
+    s.add_argument("--root", required=True)
+    s.set_defaults(func=_cmd_discover_repos)
+
+    s = sub.add_parser("resolve-branch")
+    s.add_argument("--namespace", required=True)
+    s.add_argument("--category", default="")
+    s.add_argument("--name", required=True)
+    s.set_defaults(func=_cmd_resolve_branch)
+
+    s = sub.add_parser("render-agents-block")
+    s.add_argument("--config", default=str(CONFIG_PATH))
+    s.set_defaults(func=_cmd_render_agents_block)
+
+    s = sub.add_parser("inject-agents-md")
+    s.add_argument("--config", default=str(CONFIG_PATH))
+    s.add_argument("--agents-md", default="")
+    s.set_defaults(func=_cmd_inject_agents_md)
+
+    s = sub.add_parser("validate-config")
+    s.add_argument("--config", default=str(CONFIG_PATH))
+    s.set_defaults(func=_cmd_validate_config)
+
+    return p
+
+
+def main(argv=None):
+    args = build_parser().parse_args(argv)
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
