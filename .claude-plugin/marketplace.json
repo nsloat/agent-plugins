@@ -5,13 +5,10 @@
   "owner": {
     "name": "Nathan Sloat"
   },
-  "metadata": {
-    "pluginRoot": "./plugins"
-  },
   "plugins": [
     {
       "name": "hello-world",
-      "source": "hello-world",
+      "source": "./plugins/hello-world",
       "description": "Example plugin demonstrating marketplace registration"
     }
   ]
