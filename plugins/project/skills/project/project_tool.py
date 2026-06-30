@@ -105,3 +105,44 @@ def suggest_repos(text, signal_rules) -> list:
             if rule["repo"] not in hits:
                 hits.append(rule["repo"])
     return hits
+
+
+def render_agents_block(cfg: dict) -> str:
+    projects_root = cfg.get("projects_root", "~/projects")
+    ns = cfg.get("branch_namespace", "")
+    lines = [
+        BLOCK_START,
+        "## Required Workflow for New Tasks (Projects Paradigm)",
+        "",
+        f"All implementation work happens inside a **project** under `{projects_root}/`.",
+        "A project is a named logical effort that may span multiple repos and tickets;",
+        "each project directory holds one real git worktree per repo it touches.",
+        "",
+        "1. **Start:** `/project new <name>` — creates the project dir, resolves the",
+        f"   shared branch `{ns}/<category>/<name>`, suggests repos, and creates a",
+        "   worktree per chosen repo.",
+        "2. **Add a repo on demand:** `/project add <repo>`.",
+        f"3. **Work** inside `{projects_root}/<name>/<repo>/` — each subdir is a real",
+        "   worktree, so grep/build/test run natively.",
+        "4. **Status:** `/project status`. **Push:** `/project push`.",
+        "5. **Finish:** `/project finish` — per-repo-aware teardown.",
+        "",
+        "Worktrees are created via native agent worktree tooling when it can target the",
+        "project path, otherwise via the git CLI. There is no `wt-*` flow.",
+        BLOCK_END,
+    ]
+    return "\n".join(lines)
+
+
+def inject_block(content: str, block: str) -> str:
+    if BLOCK_START in content and BLOCK_END in content:
+        pattern = re.compile(
+            re.escape(BLOCK_START) + r".*?" + re.escape(BLOCK_END), re.DOTALL
+        )
+        return pattern.sub(lambda _m: block, content)
+    if content == "":
+        return block + "\n"
+    sep = "\n" if content.endswith("\n") else "\n\n"
+    if content.endswith("\n\n"):
+        sep = ""
+    return content + sep + block + "\n"

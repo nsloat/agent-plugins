@@ -129,3 +129,41 @@ class TestSuggest(unittest.TestCase):
 
     def test_none_text_safe(self):
         self.assertEqual(pt.suggest_repos(None, self.RULES), [])
+
+
+class TestAgentsMd(unittest.TestCase):
+    def _cfg(self):
+        return {"projects_root": "~/projects", "branch_namespace": "alice-co"}
+
+    def test_block_is_marker_wrapped(self):
+        block = pt.render_agents_block(self._cfg())
+        self.assertTrue(block.startswith(pt.BLOCK_START))
+        self.assertTrue(block.rstrip().endswith(pt.BLOCK_END))
+        self.assertIn("alice-co", block)
+        self.assertIn("~/projects", block)
+        self.assertIn("/project new", block)
+
+    def test_inject_appends_when_absent(self):
+        content = "# AGENTS.md\n\nExisting content.\n"
+        block = pt.render_agents_block(self._cfg())
+        out = pt.inject_block(content, block)
+        self.assertIn("Existing content.", out)
+        self.assertIn(pt.BLOCK_START, out)
+        self.assertIn(pt.BLOCK_END, out)
+
+    def test_inject_is_idempotent(self):
+        content = "# AGENTS.md\n\nExisting content.\n"
+        block = pt.render_agents_block(self._cfg())
+        once = pt.inject_block(content, block)
+        twice = pt.inject_block(once, block)
+        self.assertEqual(once, twice)
+        self.assertEqual(once.count(pt.BLOCK_START), 1)
+
+    def test_inject_replaces_existing_block(self):
+        content = "# AGENTS.md\n\nExisting.\n"
+        old = pt.inject_block(content, pt.render_agents_block({
+            "projects_root": "~/old-projects", "branch_namespace": "old-ns"}))
+        new = pt.inject_block(old, pt.render_agents_block(self._cfg()))
+        self.assertIn("alice-co", new)
+        self.assertNotIn("old-ns", new)
+        self.assertEqual(new.count(pt.BLOCK_START), 1)
