@@ -59,3 +59,39 @@ def validate_config(cfg: dict) -> list:
             if rk not in r:
                 errors.append(f"repos[{i}] missing {rk}")
     return errors
+
+
+def is_git_repo(path) -> bool:
+    return (Path(path).expanduser() / ".git").exists()
+
+
+def default_branch(repo_path) -> str:
+    repo = str(Path(repo_path).expanduser())
+    try:
+        out = subprocess.run(
+            ["git", "-C", repo, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        return out.split("/", 1)[1] if "/" in out else out
+    except subprocess.CalledProcessError:
+        for b in ("main", "master"):
+            r = subprocess.run(
+                ["git", "-C", repo, "rev-parse", "--verify", "--quiet", b],
+                capture_output=True, text=True,
+            )
+            if r.returncode == 0:
+                return b
+        head = subprocess.run(
+            ["git", "-C", repo, "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True,
+        ).stdout.strip()
+        return head or "main"
+
+
+def discover_repos(repos_root) -> list:
+    root = Path(repos_root).expanduser()
+    repos = []
+    for child in sorted(root.iterdir(), key=lambda p: p.name):
+        if child.is_dir() and is_git_repo(child):
+            repos.append({"name": child.name, "path": str(child), "base": default_branch(child)})
+    return repos

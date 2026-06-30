@@ -63,3 +63,44 @@ class TestConfig(unittest.TestCase):
         errs = pt.validate_config(cfg)
         self.assertTrue(any("path" in e for e in errs))
         self.assertTrue(any("base" in e for e in errs))
+
+
+import subprocess
+
+
+def _init_repo(path: Path, branch: str):
+    path.mkdir(parents=True)
+    subprocess.run(["git", "init", "-q", "-b", branch, str(path)], check=True)
+    subprocess.run(["git", "-C", str(path), "config", "user.email", "t@t.co"], check=True)
+    subprocess.run(["git", "-C", str(path), "config", "user.name", "t"], check=True)
+    (path / "README.md").write_text("x\n")
+    subprocess.run(["git", "-C", str(path), "add", "-A"], check=True)
+    subprocess.run(["git", "-C", str(path), "commit", "-q", "-m", "init"], check=True)
+
+
+class TestDiscovery(unittest.TestCase):
+    def test_is_git_repo_true_and_false(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "r"
+            _init_repo(repo, "main")
+            self.assertTrue(pt.is_git_repo(repo))
+            self.assertFalse(pt.is_git_repo(Path(d)))
+
+    def test_default_branch_local_fallback(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "r"
+            _init_repo(repo, "trunk")
+            # No origin remote, so falls back to local branch detection
+            self.assertEqual(pt.default_branch(repo), "trunk")
+
+    def test_discover_repos_finds_and_sorts(self):
+        with tempfile.TemporaryDirectory() as d:
+            _init_repo(Path(d) / "beta", "main")
+            _init_repo(Path(d) / "alpha", "master")
+            (Path(d) / "not-a-repo").mkdir()
+            repos = pt.discover_repos(d)
+            names = [r["name"] for r in repos]
+            self.assertEqual(names, ["alpha", "beta"])
+            self.assertEqual(repos[0]["base"], "master")
+            self.assertEqual(repos[1]["base"], "main")
+            self.assertTrue(repos[0]["path"].endswith("/alpha"))
