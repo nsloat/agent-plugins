@@ -167,3 +167,49 @@ class TestAgentsMd(unittest.TestCase):
         self.assertIn("alice-co", new)
         self.assertNotIn("old-ns", new)
         self.assertEqual(new.count(pt.BLOCK_START), 1)
+
+
+class TestManifest(unittest.TestCase):
+    def test_create_manifest_shape(self):
+        m = pt.create_manifest("auth-revamp", "FEAT-42", ["FEAT-42"],
+                               "alice-co/FEAT-42/auth-revamp", "2026-06-15")
+        self.assertEqual(m["name"], "auth-revamp")
+        self.assertEqual(m["category"], "FEAT-42")
+        self.assertEqual(m["tickets"], ["FEAT-42"])
+        self.assertEqual(m["branch"], "alice-co/FEAT-42/auth-revamp")
+        self.assertEqual(m["created"], "2026-06-15")
+        self.assertEqual(m["repos"], [])
+
+    def test_manifest_path(self):
+        p = pt.manifest_path("~/projects", "My Project")
+        self.assertTrue(str(p).endswith("/My-Project/.project.json"))
+
+    def test_add_repo_dedups(self):
+        m = pt.create_manifest("p", "c", [], "alice-co/c/p", "2026-06-15")
+        entry = {"name": "api-service", "base": "main", "branch": "alice-co/c/p"}
+        pt.add_repo_to_manifest(m, entry)
+        pt.add_repo_to_manifest(m, dict(entry))
+        self.assertEqual(len(m["repos"]), 1)
+        self.assertEqual(m["repos"][0]["name"], "api-service")
+
+
+class TestFinishSafety(unittest.TestCase):
+    def test_clean_pushed_merged_is_safe(self):
+        self.assertTrue(pt.repo_safe_to_remove(
+            {"dirty": False, "unpushed": False, "pr_merged": True}))
+
+    def test_dirty_is_unsafe(self):
+        self.assertFalse(pt.repo_safe_to_remove(
+            {"dirty": True, "unpushed": False, "pr_merged": True}))
+
+    def test_unpushed_is_unsafe(self):
+        self.assertFalse(pt.repo_safe_to_remove(
+            {"dirty": False, "unpushed": True, "pr_merged": True}))
+
+    def test_no_merged_pr_is_unsafe(self):
+        self.assertFalse(pt.repo_safe_to_remove(
+            {"dirty": False, "unpushed": False, "pr_merged": None}))
+
+    def test_force_overrides_everything(self):
+        self.assertTrue(pt.repo_safe_to_remove(
+            {"dirty": True, "unpushed": True, "pr_merged": None, "force": True}))

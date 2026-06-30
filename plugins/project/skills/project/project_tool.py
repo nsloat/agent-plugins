@@ -146,3 +146,38 @@ def inject_block(content: str, block: str) -> str:
     if content.endswith("\n\n"):
         sep = ""
     return content + sep + block + "\n"
+
+
+MANIFEST_NAME = ".project.json"
+
+
+def manifest_path(projects_root, name) -> Path:
+    return Path(projects_root).expanduser() / slugify(name) / MANIFEST_NAME
+
+
+def create_manifest(name, category, tickets, branch, created) -> dict:
+    return {
+        "name": name,
+        "category": category,
+        "tickets": list(tickets or []),
+        "branch": branch,
+        "created": created,
+        "repos": [],
+    }
+
+
+def add_repo_to_manifest(manifest: dict, repo_entry: dict) -> dict:
+    names = {r["name"] for r in manifest["repos"]}
+    if repo_entry["name"] not in names:
+        manifest["repos"].append(repo_entry)
+    return manifest
+
+
+def repo_safe_to_remove(status: dict) -> bool:
+    if status.get("force"):
+        return True
+    if status.get("dirty"):
+        return False
+    if status.get("unpushed"):
+        return False
+    return status.get("pr_merged") is True
