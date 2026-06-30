@@ -1,0 +1,6 @@
+{
+  "name": "hello-world",
+  "displayName": "Hello World",
+  "description": "Example plugin demonstrating marketplace registration",
+  "version": "1.0.0"
+}

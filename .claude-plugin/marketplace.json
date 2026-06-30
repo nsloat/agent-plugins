@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-plugins",
+  "description": "Nathan Sloat's Claude Code plugin marketplace",
+  "owner": {
+    "name": "Nathan Sloat"
+  },
+  "metadata": {
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "hello-world",
+      "source": "hello-world",
+      "description": "Example plugin demonstrating marketplace registration"
+    }
+  ]
+}
